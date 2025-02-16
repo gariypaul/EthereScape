@@ -1,5 +1,14 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import (
+    Flask,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    flash,
+    session,
+    jsonify,
+)
 from flask_login import (
     LoginManager,
     login_user,
@@ -17,6 +26,7 @@ from google import genai
 import requests
 import httpx
 import asyncio
+import math
 from pydantic import BaseModel, TypeAdapter
 
 load_dotenv()  # Load environment variables from .env
@@ -142,12 +152,16 @@ def signup():
 # --- Protected Routes (with navigation bar) ---
 # These pages require a logged-in user and use a protected base template (protected_base.html).
 
+
 # Define the schema for an activity suggestion.
 class Activity(BaseModel):
     activity: str
     location: str
     description: str
     time_availability: str
+    longitude: float
+    latitude: float
+
 
 @app.route("/activities")
 @login_required
@@ -156,7 +170,13 @@ def activities():
     user_ip = session.get("user_ip", "Unknown IP")
     user_interests = current_user.interests
     # Render the template with these values so client-side code can use them
-    return render_template("activities.html", title="Activities", user_ip=user_ip, user_interests=user_interests)
+    return render_template(
+        "activities.html",
+        title="Activities",
+        user_ip=user_ip,
+        user_interests=user_interests,
+    )
+
 
 @app.route("/api/gemini_activities")
 @login_required
@@ -182,7 +202,7 @@ async def gemini_activities():
     region = ip_info.get("regionName", "Unknown Region")
     if city == "Unknown City" or region == "Unknown Region":
         print("Failed to retrieve city or region", city, region)
-         # Fallback if city or region is unknown
+        # Fallback if city or region is unknown
         return jsonify([])
 
     prompt = (
@@ -191,15 +211,15 @@ async def gemini_activities():
     )
 
     response = await asyncio.to_thread(
-                    gemini_client.models.generate_content,
-                    model="gemini-2.0-flash",
-                    contents=prompt,
-                    config={
-                        "response_mime_type": "application/json",
-                        "response_schema": list[Activity],
-                    }
-                )
-                # Assuming the response has a .text attribute that returns JSON or a string
+        gemini_client.models.generate_content,
+        model="gemini-2.0-flash",
+        contents=prompt,
+        config={
+            "response_mime_type": "application/json",
+            "response_schema": list[Activity],
+        },
+    )
+    # Assuming the response has a .text attribute that returns JSON or a string
     try:
         activitiesData = response.text
         print("Fetched activities data")
@@ -207,6 +227,7 @@ async def gemini_activities():
         print("Error fetching activities data:", e)
         activitiesData = []
     return activitiesData
+
 
 @app.route("/public_events")
 @login_required
@@ -242,9 +263,10 @@ def public_events():
 @app.route("/schedule")
 @login_required
 def schedule():
-    # Query scheduled events for the current user
-    events = list(db.ScheduledEvents.find({"user_id": current_user.id}))
-    # Convert ObjectIds to strings if needed
+    events = list(
+        db.ScheduledEvents.find({"user_id": current_user.id, "verified": False})
+    )
+    # Convert ObjectIds to strings if needed:
     for event in events:
         event["id"] = str(event["_id"])
     return render_template("schedule.html", schedule=events, title="Schedule")
@@ -260,6 +282,8 @@ def schedule_event():
         location = request.form["location"]
         time_availability = request.form["time_availability"]
         scheduled_date = request.form["scheduled_date"]
+        longitude = request.form["longitude"]
+        latitude = request.form["latitude"]
 
         # Save scheduled event to the database (in ScheduledEvents collection)
         event_data = {
@@ -267,37 +291,106 @@ def schedule_event():
             "activity": activity,
             "description": description,
             "location": location,
+            "longitude": longitude,
+            "latitude": latitude,
             "time_availability": time_availability,
             "scheduled_date": scheduled_date,
+            "verified": False,
         }
         db.ScheduledEvents.insert_one(event_data)
         flash("Event scheduled successfully!")
         return redirect(url_for("schedule"))
-    
+
     # GET request: prefill form fields from query parameters
     activity = request.args.get("activity", "")
     description = request.args.get("description", "")
     location = request.args.get("location", "")
     time_availability = request.args.get("time_availability", "")
+    longitude = request.args.get("longitude", "")
+    latitude = request.args.get("latitude", "")
+
     return render_template(
         "schedule_event.html",
         title="Schedule Event",
         activity=activity,
         description=description,
         location=location,
-        time_availability=time_availability
+        time_availability=time_availability,
+        longitude=longitude,
+        latitude=latitude,
     )
+
+
+@app.route("/verify_event/<event_id>", methods=["POST"])
+@login_required
+def verify_event(event_id):
+    user_lat = float(request.form["latitude"])
+    user_long = float(request.form["longitude"])
+
+    print(user_lat, user_long)
+
+    # retrieve event data from database
+    try:
+        event = db.ScheduledEvents.find_one(
+            {"_id": ObjectId(event_id), "user_id": current_user.id}
+        )
+    except Exception as e:
+        flash("Error retrieving event: " + str(e))
+        print (e)
+        return redirect(url_for("schedule"))
+    
+    print(event)
+
+    if not event:
+        flash("Event not found or you do not have permission to verify it.")
+        return redirect(url_for("schedule"))
+
+    event_lat = float(event.get("latitude"))
+    event_lng = float(event.get("longitude"))
+    if event_lat is None or event_lng is None:
+        flash("Event location not set.")
+        return redirect(url_for("schedule"))
+
+    print(event_lat, event_lng)
+    # Check if user is 0.1 miles from event location
+    distance = calculate_distance(user_lat, user_long, event_lat, event_lng)
+    print(distance)
+    if distance > 0.1:
+        return jsonify({"success": False, "error": "You are not close enough to verify attendance."}), 400
+    # Otherwise call smart contract to verify event
+    try:
+        print("Verifying event...")
+    except Exception as e:
+        flash("Error verifying event: " + str(e))
+        return redirect(url_for("schedule"))
+
+    # Add user points
+    db.User.update_one({"_id": ObjectId(current_user.id)}, {"$inc": {"points": 10}})
+
+    # mark event as verified
+    db.ScheduledEvents.update_one(
+        {"_id": ObjectId(event_id)}, {"$set": {"verified": True}}
+    )
+
+    return jsonify({"success": True}) 
+    return redirect(url_for("schedule"))
 
 
 @app.route("/account")
 @login_required
 def account():
-    # In a real application, you might query the database for the user's activity history.
-    # Here, we're using a hard-coded list for demonstration purposes.
-    activityHistory = [
-        {"id": 1, "title": "Activity 1", "date": "2025-03-05"},
-        {"id": 2, "title": "Activity 2", "date": "2025-03-10"},
-    ]
+    # Get activity history from verified events under user
+    activityHistory = list(
+        db.ScheduledEvents.find({"user_id": current_user.id, "verified": True})
+    )
+
+    # format events
+    for i in range(len(activityHistory)):
+        activityHistory[i]["id"] = i + 1
+        activityHistory[i]["date"] = activityHistory[i]["scheduled_date"].strftime(
+            "%Y-%m-%d"
+        )
+        activityHistory[i]["title"] = activityHistory[i]["activity"]
 
     # current_user is provided by Flask-Login. It should contain fields such as email, name, bio, and interests.
     return render_template(
@@ -313,6 +406,22 @@ def account():
 def logout():
     logout_user()
     return redirect(url_for("landing"))
+
+
+# ---- Helper Functions ----
+def calculate_distance(lat1, long1, lat2, long2):
+    # Harversine formula to calculate distance between two lat/long points
+    R = 3959  # Radius of the Earth in miles
+    dLat = math.radians(lat2 - lat1)
+    dLon = math.radians(long2 - long1)
+    a = (
+        math.sin(dLat / 2) ** 2
+        + math.cos(math.radians(lat1))
+        * math.cos(math.radians(lat2))
+        * math.sin(dLon / 2) ** 2
+    )
+    c = 2 * math.asin(math.sqrt(a))
+    return R * c
 
 
 if __name__ == "__main__":

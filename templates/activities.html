@@ -4,104 +4,108 @@
 
 <!-- Spinner: displayed while activities are loading -->
 <div id="spinner" class="text-center my-4">
-  <div class="spinner-border text-primary" role="status">
-    <span class="visually-hidden">Loading...</span>
-  </div>
-  <p>Loading activities...</p>
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    <p>Loading activities...</p>
 </div>
 
 <!-- Activities Container: initially hidden -->
 <div id="activitiesContainer" class="row d-none">
-  <!-- Left Column: Activity List -->
-  <div class="col-md-12" id="activityListColumn">
-    <div id="activityList" class="list-group">
-      <!-- Activity buttons will be injected here -->
+    <!-- Left Column: Activity List -->
+    <div class="col-md-12" id="activityListColumn">
+        <div id="activityList" class="list-group">
+            <!-- Activity buttons will be injected here -->
+        </div>
     </div>
-  </div>
-  
-  <!-- Right Column: Activity Details (hidden until an item is clicked) -->
-  <div class="col-md-8 d-none" id="activityDetailColumn">
-    <div id="activityDetail" class="card">
-      <div class="card-body">
-        <h5 class="card-title" id="detailTitle">Activity Details</h5>
-        <p class="card-text" id="detailLocation"><strong>Location:</strong></p>
-        <p class="card-text" id="detailDescription">
-          Select an activity from the list to see details.
-        </p>
-        <p class="card-text" id="detailTime"><strong>Time Availability:</strong></p>
-        <!-- Schedule Button (hidden until an activity is selected) -->
-        <a href="#" id="scheduleButton" class="btn btn-primary mt-3 d-none">
-          Schedule this event
-        </a>
-      </div>
+
+    <!-- Right Column: Activity Details (hidden until an item is clicked) -->
+    <div class="col-md-8 d-none" id="activityDetailColumn">
+        <div id="activityDetail" class="card">
+            <div class="card-body">
+                <h5 class="card-title" id="detailTitle">Activity Details</h5>
+                <p class="card-text" id="detailLocation"><strong>Location:</strong></p>
+                <p class="card-text" id="detailDescription">
+                    Select an activity from the list to see details.
+                </p>
+                <p class="card-text" id="detailTime"><strong>Time Availability:</strong></p>
+                <!-- Schedule Button (hidden until an activity is selected) -->
+                <a href="#" id="scheduleButton" class="btn btn-primary mt-3 d-none">
+                    Schedule this event
+                </a>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Fetch activities from the Gemini API endpoint
-    fetch('/api/gemini_activities')
-      .then(response => response.json())
-      .then(data => {
-        // Hide the spinner and show the activities container
-        document.getElementById('spinner').classList.add('d-none');
-        document.getElementById('activitiesContainer').classList.remove('d-none');
-        
-        const activityList = document.getElementById('activityList');
-        const scheduleButton = document.getElementById('scheduleButton');
-        
-        // For each activity, create a button with the desired formatting
-        data.forEach(act => {
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'list-group-item list-group-item-action';
-          // Display activity title in bold and location as small text.
-          btn.innerHTML = `<strong>${act.activity}</strong><br><small>${act.location}</small>`;
-          // Store full details in data attributes
-          btn.dataset.activity = act.activity;
-          btn.dataset.location = act.location;
-          btn.dataset.description = act.description;
-          btn.dataset.time = act["time availability"];
-          
-          // When clicked, update the detail panel and schedule button
-          btn.addEventListener('click', function() {
-            // Update detail panel content
-            document.getElementById('detailTitle').textContent = this.dataset.activity;
-            document.getElementById('detailLocation').innerHTML = `<strong>Location:</strong> ${this.dataset.location}`;
-            document.getElementById('detailDescription').innerHTML = `<strong>Description:</strong> ${this.dataset.description}`;
-            document.getElementById('detailTime').innerHTML = `<strong>Time Availability:</strong> ${this.dataset.time}`;
-            
-            // Update the Schedule button's href with URL-encoded query parameters.
-            const query = new URLSearchParams({
-              activity: this.dataset.activity,
-              description: this.dataset.description,
-              location: this.dataset.location,
-              time_availability: this.dataset.time
+    document.addEventListener('DOMContentLoaded', function () {
+        // Fetch activities from the Gemini API endpoint
+        fetch('/api/gemini_activities')
+            .then(response => response.json())
+            .then(data => {
+                // Hide the spinner and show the activities container
+                document.getElementById('spinner').classList.add('d-none');
+                document.getElementById('activitiesContainer').classList.remove('d-none');
+
+                const activityList = document.getElementById('activityList');
+                const scheduleButton = document.getElementById('scheduleButton');
+
+                // For each activity, create a button with the desired formatting
+                data.forEach(act => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'list-group-item list-group-item-action';
+                    // Display activity title in bold and location as small text.
+                    btn.innerHTML = `<strong>${act.activity}</strong><br><small>${act.location}</small>`;
+                    // Store full details in data attributes
+                    btn.dataset.activity = act.activity;
+                    btn.dataset.location = act.location;
+                    btn.dataset.description = act.description;
+                    btn.dataset.time = act.time_availability;
+                    btn.dataset.longitude = act.longitude;
+                    btn.dataset.latitude = act.latitude;
+
+                    // When clicked, update the detail panel and schedule button
+                    btn.addEventListener('click', function () {
+                        // Update detail panel content
+                        document.getElementById('detailTitle').textContent = this.dataset.activity;
+                        document.getElementById('detailLocation').innerHTML = `<strong>Location:</strong> ${this.dataset.location}`;
+                        document.getElementById('detailDescription').innerHTML = `<strong>Description:</strong> ${this.dataset.description}`;
+                        document.getElementById('detailTime').innerHTML = `<strong>Time Availability:</strong> ${this.dataset.time}`;
+
+                        // Update the Schedule button's href with URL-encoded query parameters.
+                        const query = new URLSearchParams({
+                            activity: this.dataset.activity,
+                            description: this.dataset.description,
+                            location: this.dataset.location,
+                            time_availability: this.dataset.time,
+                            longitude: this.dataset.longitude,
+                            latitude: this.dataset.latitude
+                        });
+                        scheduleButton.href = '/schedule_event?' + query.toString();
+                        scheduleButton.classList.remove('d-none');
+
+                        // Adjust layout: if necessary, shrink the activity list column.
+                        const activityListColumn = document.getElementById('activityListColumn');
+                        if (activityListColumn.classList.contains('col-md-12')) {
+                            activityListColumn.classList.replace('col-md-12', 'col-md-4');
+                        }
+                        document.getElementById('activityDetailColumn').classList.remove('d-none');
+
+                        // Highlight selected item
+                        const items = activityList.querySelectorAll('button.list-group-item');
+                        items.forEach(item => item.classList.remove('active'));
+                        this.classList.add('active');
+                    });
+
+                    activityList.appendChild(btn);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching activities:', error);
+                document.getElementById('spinner').innerHTML = '<p class="text-danger">Failed to load activities. Please try again later.</p>';
             });
-            scheduleButton.href = '/schedule_event?' + query.toString();
-            scheduleButton.classList.remove('d-none');
-            
-            // Adjust layout: if necessary, shrink the activity list column.
-            const activityListColumn = document.getElementById('activityListColumn');
-            if (activityListColumn.classList.contains('col-md-12')) {
-              activityListColumn.classList.replace('col-md-12', 'col-md-4');
-            }
-            document.getElementById('activityDetailColumn').classList.remove('d-none');
-            
-            // Highlight selected item
-            const items = activityList.querySelectorAll('button.list-group-item');
-            items.forEach(item => item.classList.remove('active'));
-            this.classList.add('active');
-          });
-          
-          activityList.appendChild(btn);
-        });
-      })
-      .catch(error => {
-        console.error('Error fetching activities:', error);
-        document.getElementById('spinner').innerHTML = '<p class="text-danger">Failed to load activities. Please try again later.</p>';
-      });
-  });
+    });
 </script>
 {% endblock %}

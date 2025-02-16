@@ -2,16 +2,86 @@
 {% block content %}
 <h1 class="mb-4">Your Scheduled Events</h1>
 {% if schedule %}
-  <ul class="list-group">
-    {% for event in schedule %}
-      <li class="list-group-item">
-        <strong>{{ event.activity }}</strong> - Scheduled on {{ event.scheduled_date }}<br>
-        <small><strong>Location:</strong> {{ event.location }}</small><br>
-        <small><strong>Description:</strong> {{ event.description }}</small>
-      </li>
-    {% endfor %}
-  </ul>
+<ul class="list-group">
+  {% for event in schedule %}
+  <li class="list-group-item" data-event-id="{{ event.id }}">
+    <strong>{{ event.activity }}</strong> - Scheduled on {{ event.scheduled_date }}<br>
+    <small><strong>Location:</strong> {{ event.location }}</small><br>
+    <small><strong>Description:</strong> {{ event.description }}</small><br>
+    <!-- Inline error element for this event -->
+    <div id="error-{{ event.id }}" class="text-danger my-2 d-none"></div>
+    <!-- Verify Attendance Button -->
+    <button type="button" class="btn btn-success btn-sm verify-btn" data-event-id="{{ event.id }}">
+      Verify Attendance
+    </button>
+  </li>
+  {% endfor %}
+</ul>
 {% else %}
-  <p>You have not scheduled any events yet.</p>
+<p>You have not scheduled any events yet.</p>
 {% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const verifyButtons = document.querySelectorAll('.verify-btn');
+  
+  verifyButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      const eventId = this.getAttribute('data-event-id');
+      const errorContainer = document.getElementById('error-' + eventId);
+      
+      // Clear previous error message if any.
+      errorContainer.classList.add('d-none');
+      errorContainer.textContent = "";
+      
+      // Check if geolocation is available
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          function(position) {
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+            
+            // Create a FormData object to send via POST
+            const formData = new FormData();
+            formData.append('latitude', latitude);
+            formData.append('longitude', longitude);
+            
+            // Send POST request to the verify_event endpoint
+            fetch(`/verify_event/${eventId}`, {
+              method: 'POST',
+              body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                // Optionally, update UI to indicate success
+                errorContainer.classList.remove('d-none');
+                errorContainer.textContent = 'Event verified successfully!';
+                // Refresh the page after a short delay, if desired:
+                setTimeout(() => { window.location.reload(); }, 2000);
+              } else {
+                errorContainer.classList.remove('d-none');
+                errorContainer.textContent = 'Verification failed: ' + data.error;
+              }
+            })
+            .catch(error => {
+              console.error('Error verifying event:', error);
+              errorContainer.classList.remove('d-none');
+              errorContainer.textContent = 'An error occurred during verification.';
+            });
+          },
+          function(error) {
+            console.error('Geolocation error:', error);
+            errorContainer.classList.remove('d-none');
+            errorContainer.textContent = 'Unable to retrieve your location.';
+          }
+        );
+      } else {
+        errorContainer.classList.remove('d-none');
+        errorContainer.textContent = 'Geolocation is not supported by your browser.';
+      }
+    });
+  });
+});
+</script>
 {% endblock %}
