@@ -1,25 +1,30 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="row">
-  <!-- Left Column: Activity List (full width initially) -->
+<h1 class="mb-4">Activities</h1>
+
+<!-- Spinner: displayed while activities are loading -->
+<div id="spinner" class="text-center my-4">
+  <div class="spinner-border text-primary" role="status">
+    <span class="visually-hidden">Loading...</span>
+  </div>
+  <p>Loading activities...</p>
+</div>
+
+<!-- Activities Container: initially hidden -->
+<div id="activitiesContainer" class="row d-none">
+  <!-- Left Column: Activity List -->
   <div class="col-md-12" id="activityListColumn">
     <div id="activityList" class="list-group">
-      {% for act in activities %}
-      <button type="button" class="list-group-item list-group-item-action" 
-              data-title="{{ act.title }}" 
-              data-description="{{ act.description }}">
-        {{ act.title }}
-      </button>
-      {% endfor %}
+      <!-- Activity buttons will be injected here -->
     </div>
   </div>
   
-  <!-- Right Column: Activity Details (hidden initially) -->
+  <!-- Right Column: Activity Details (hidden until an item is clicked) -->
   <div class="col-md-8 d-none" id="activityDetailColumn">
     <div id="activityDetail" class="card">
       <div class="card-body">
-        <h5 class="card-title">Activity Details</h5>
-        <p class="card-text" id="activityDescription">
+        <h5 class="card-title" id="detailTitle">Activity Details</h5>
+        <p class="card-text" id="detailDescription">
           Select an activity from the list to see details.
         </p>
       </div>
@@ -27,31 +32,56 @@
   </div>
 </div>
 
-<!-- JavaScript to handle layout changes -->
 <script>
-  const activityList = document.getElementById('activityList');
-  const activityListColumn = document.getElementById('activityListColumn');
-  const activityDetailColumn = document.getElementById('activityDetailColumn');
-  const activityDetailTitle = document.querySelector('#activityDetail .card-title');
-  const activityDescription = document.getElementById('activityDescription');
-
-  activityList.addEventListener('click', function(e) {
-    if (e.target && e.target.matches("button.list-group-item")) {
-      // Update activity details
-      const title = e.target.getAttribute('data-title');
-      const description = e.target.getAttribute('data-description');
-      activityDetailTitle.textContent = title;
-      activityDescription.textContent = description;
-
-      // Adjust layout columns
-      activityListColumn.classList.replace('col-md-12', 'col-md-4');
-      activityDetailColumn.classList.remove('d-none');
-
-      // Highlight selected item
-      const items = activityList.querySelectorAll('button.list-group-item');
-      items.forEach(item => item.classList.remove('active'));
-      e.target.classList.add('active');
-    }
+  document.addEventListener('DOMContentLoaded', function() {
+    // Fetch activities from the Gemini API endpoint
+    fetch('/api/gemini_activities')
+      .then(response => response.json())
+      .then(data => {
+        // Hide the spinner and show the activities container
+        document.getElementById('spinner').classList.add('d-none');
+        document.getElementById('activitiesContainer').classList.remove('d-none');
+        
+        const activityList = document.getElementById('activityList');
+        
+        // For each activity, create a button with the same list formatting
+        data.forEach(act => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'list-group-item list-group-item-action';
+          // Display activity title (you could also add location if desired)
+          btn.innerHTML = `<strong>${act.activity}</strong><br><small>${act.location}</small>`;
+          // Store full details in data attributes
+          btn.dataset.title = act.activity;
+          btn.dataset.description = act.description;
+          btn.dataset.location = act.location;
+          btn.dataset.time = act.time_availability;
+          
+          // When clicked, update the detail panel
+          btn.addEventListener('click', function() {
+            document.getElementById('detailTitle').textContent = this.dataset.title;
+            document.getElementById('detailDescription').innerHTML = `<strong>Description:</strong> ${this.dataset.description}<br><strong>Time Availability:</strong> ${this.dataset.time}`;
+            
+            // Adjust layout: shrink the activity list column if necessary
+            const activityListColumn = document.getElementById('activityListColumn');
+            if (activityListColumn.classList.contains('col-md-12')) {
+              activityListColumn.classList.replace('col-md-12', 'col-md-4');
+            }
+            document.getElementById('activityDetailColumn').classList.remove('d-none');
+            
+            // Highlight the selected button
+            const items = activityList.querySelectorAll('button.list-group-item');
+            items.forEach(item => item.classList.remove('active'));
+            this.classList.add('active');
+          });
+          
+          activityList.appendChild(btn);
+        });
+      })
+      .catch(error => {
+        console.error('Error fetching activities:', error);
+        document.getElementById('spinner').innerHTML = '<p class="text-danger">Failed to load activities. Please try again later.</p>';
+      });
   });
 </script>
 {% endblock %}

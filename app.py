@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_login import (
     LoginManager,
     login_user,
@@ -14,6 +14,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 from bson.objectid import ObjectId
 from google import genai
+import requests
+import httpx
+import asyncio
+from pydantic import BaseModel, TypeAdapter
 
 load_dotenv()  # Load environment variables from .env
 
@@ -24,7 +28,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey")
 mongo_uri = os.environ.get("MONGO_URI")
 geminapi = os.environ.get("GEMINI_API_KEY")
 
-gemini_client =  genai.Client(api_key=geminapi)
+gemini_client = genai.Client(api_key=geminapi)
 client = MongoClient(mongo_uri, server_api=ServerApi("1"))
 db = client.get_database(
     "etherescape"
@@ -113,21 +117,23 @@ def signup():
                 return redirect(url_for("signup"))
 
             hashed_pw = generate_password_hash(password)
-            db.User.insert_one({
-                "email": email,
-                "password": hashed_pw,
-                "first_name": first_name,
-                "last_name": last_name,
-                "name": f"{first_name} {last_name}",
-                "bio": bio,
-                "interests": interests,
-            })
+            db.User.insert_one(
+                {
+                    "email": email,
+                    "password": hashed_pw,
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "name": f"{first_name} {last_name}",
+                    "bio": bio,
+                    "interests": interests,
+                }
+            )
             flash("Signup successful! Please log in.")
             return redirect(url_for("login"))
         except Exception as e:
             flash("An error occurred: " + str(e))
             return redirect(url_for("signup"))
-    
+
     # GET request: query the Interests collection
     interests_list = list(db.Interests.find({}, {"_id": 0, "name": 1}))
     return render_template("signup.html", title="Sign Up", interests=interests_list)
@@ -136,38 +142,71 @@ def signup():
 # --- Protected Routes (with navigation bar) ---
 # These pages require a logged-in user and use a protected base template (protected_base.html).
 
+# Define the schema for an activity suggestion.
+class Activity(BaseModel):
+    activity: str
+    location: str
+    description: str
+    time_availability: str
 
 @app.route("/activities")
 @login_required
 def activities():
-    # Sample activities data (could be fetched from the database)
-    activitiesData = [
-        {
-            "id": 1,
-            "title": "Activity 1",
-            "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-        },
-        {
-            "id": 2,
-            "title": "Activity 2",
-            "description": "Ut enim ad minim veniam, quis nostrud exercitation ullamco.",
-        },
-        {
-            "id": 3,
-            "title": "Activity 3",
-            "description": "Duis aute irure dolor in reprehenderit in voluptate velit.",
-        },
-        {
-            "id": 4,
-            "title": "Activity 4",
-            "description": "Excepteur sint occaecat cupidatat non proident.",
-        },
-    ]
-    # Render using the protected base (which includes the navigation bar).
-    return render_template(
-        "activities.html", activities=activitiesData, title="Activities"
+    # Retrieve the user's IP address and interests (these were stored on login)
+    user_ip = session.get("user_ip", "Unknown IP")
+    user_interests = current_user.interests
+    # Render the template with these values so client-side code can use them
+    return render_template("activities.html", title="Activities", user_ip=user_ip, user_interests=user_interests)
+
+@app.route("/api/gemini_activities")
+@login_required
+async def gemini_activities():
+    user_ip = session.get("user_ip", "Unknown IP")
+    if user_ip == "127.0.0.1":  # Localhost IP
+        user_ip = "129.15.64.228"
+    user_interests = current_user.interests
+
+    # Fallback if IP is unknown
+    if user_ip == "Unknown IP":
+        print("User IP is unknown")
+        return jsonify([])
+
+    async with httpx.AsyncClient() as client:
+        ip_response = await client.get(f"http://ip-api.com/json/{user_ip}")
+    if ip_response.status_code != 200:
+        print("Failed to retrieve IP information")
+        return jsonify([])
+
+    ip_info = ip_response.json()
+    city = ip_info.get("city", "Unknown City")
+    region = ip_info.get("regionName", "Unknown Region")
+    if city == "Unknown City" or region == "Unknown Region":
+        print("Failed to retrieve city or region", city, region)
+         # Fallback if city or region is unknown
+        return jsonify([])
+
+    prompt = (
+        f"Give me a list of suggested activities based on these interests: "
+        f"{user_interests} in the area of {city}, {region}"
     )
 
+    response = await asyncio.to_thread(
+                    gemini_client.models.generate_content,
+                    model="gemini-2.0-flash",
+                    contents=prompt,
+                    config={
+                        "response_mime_type": "application/json",
+                        "response_schema": list[Activity],
+                    }
+                )
+                # Assuming the response has a .text attribute that returns JSON or a string
+    try:
+        activitiesData = response.text
+        print("Fetched activities data")
+    except Exception as e:
+        print("Error fetching activities data:", e)
+        activitiesData = []
+    return activitiesData
 
 @app.route("/public_events")
 @login_required
