@@ -25,6 +25,7 @@ from bson.objectid import ObjectId
 from google import genai
 import requests
 import httpx
+from datetime import datetime
 import asyncio
 import math
 from pydantic import BaseModel, TypeAdapter
@@ -392,18 +393,24 @@ def account():
         db.ScheduledEvents.find({"user_id": current_user.id, "verified": True})
     )
 
+    #get user points 
+    user = db.User.find_one({"_id": ObjectId(current_user.id)})
+    user_points = user["points"]
+    user_first_name = user["first_name"]
+    user_last_name = user["last_name"]
+
     # format events
     for i in range(len(activityHistory)):
+        date_str = activityHistory[i]["scheduled_date"]
+        date_obj = datetime.strptime(activityHistory[i]["scheduled_date"], "%Y-%m-%d")
         activityHistory[i]["id"] = i + 1
-        activityHistory[i]["date"] = activityHistory[i]["scheduled_date"].strftime(
-            "%Y-%m-%d"
-        )
+        activityHistory[i]["date"] = date_obj.strftime("%Y-%m-%d")
         activityHistory[i]["title"] = activityHistory[i]["activity"]
 
     # current_user is provided by Flask-Login. It should contain fields such as email, name, bio, and interests.
     return render_template(
         "account.html",
-        user=current_user,
+        user=user,
         activityHistory=activityHistory,
         title="Account",
     )

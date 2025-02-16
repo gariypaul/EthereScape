@@ -7,7 +7,8 @@
       User Details
     </div>
     <div class="card-body">
-      <p class="card-text"><strong>Full Name:</strong> {{ current_user.first_name }} {{ current_user.last_name }}</p>
+      <p class="card-text"><strong>Full Name:</strong> {{ user.first_name
+      }} {{ user.last_name }}</p>
       <p class="card-text"><strong>Email:</strong> {{ current_user.email }}</p>
       <p class="card-text">
         <strong>Bio:</strong>
@@ -25,6 +26,7 @@
           None
         {% endif %}
       </p>
+      <p class="card-text"><strong>Points:</strong> {{ user.points }}</p>
     </div>
   </div>
 
