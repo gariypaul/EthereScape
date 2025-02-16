@@ -355,7 +355,7 @@ def verify_event(event_id):
     # Check if user is 0.1 miles from event location
     distance = calculate_distance(user_lat, user_long, event_lat, event_lng)
     print(distance)
-    if distance > 0.1:
+    if distance > 2.0:
         return (
             jsonify(
                 {

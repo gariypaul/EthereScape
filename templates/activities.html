@@ -14,14 +14,14 @@
 <div id="activitiesContainer" class="row d-none">
     <!-- Left Column: Activity List -->
     <div class="col-md-12" id="activityListColumn">
-        <div id="activityList" class="list-group">
+        <div id="activityList" class="list-group shadow p-4 rounded bg-white">
             <!-- Activity buttons will be injected here -->
         </div>
     </div>
 
     <!-- Right Column: Activity Details (hidden until an item is clicked) -->
     <div class="col-md-8 d-none" id="activityDetailColumn">
-        <div id="activityDetail" class="card">
+        <div id="activityDetail" class="card shadow p-4 rounded bg-white">
             <div class="card-body">
                 <h5 class="card-title" id="detailTitle">Activity Details</h5>
                 <p class="card-text" id="detailLocation"><strong>Location:</strong></p>
@@ -37,6 +37,38 @@
         </div>
     </div>
 </div>
+
+<style>
+    .list-group-item {
+        transition: all 0.3s ease;
+        border-left: 4px solid transparent;
+    }
+
+    .list-group-item:hover {
+        border-left: 4px solid var(--accent-color);
+    }
+
+    .list-group-item.active {
+        background-color: rgba(46, 139, 87, 0.1);
+        border-left: 4px solid var(--primary-color);
+        color: var(--text-color);
+    }
+
+    #activityDetail {
+        opacity: 0;
+        transform: translateX(20px);
+        transition: all 0.3s ease;
+    }
+
+    #activityDetail.visible {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    .spinner-border {
+        color: var(--accent-color);
+    }
+</style>
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -97,6 +129,14 @@
                         const items = activityList.querySelectorAll('button.list-group-item');
                         items.forEach(item => item.classList.remove('active'));
                         this.classList.add('active');
+
+                        const detailPanel = document.getElementById('activityDetail');
+                        detailPanel.classList.remove('visible');
+                        
+                        // Add visible class after a brief delay for animation
+                        setTimeout(() => {
+                            detailPanel.classList.add('visible');
+                        }, 50);
                     });
 
                     activityList.appendChild(btn);

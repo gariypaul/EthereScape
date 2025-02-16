@@ -8,17 +8,97 @@
     integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
   <style>
     /* Custom vanilla CSS for the profile icon */
+    :root {
+            --primary-color: #2e8b57;     /* Sea Green */
+            --secondary-color: #4682b4;    /* Steel Blue */
+            --accent-color: #f4a460;       /* Sandy Brown */
+            --background-color: #f0f8ff;   /* Alice Blue */
+            --text-color: #2f4f4f;         /* Dark Slate Gray */
+            --success-color: #3cb371;      /* Medium Sea Green */
+            --danger-color: #dc143c;       /* Crimson */
+            --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --hover-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        }
+        
     .profile-icon {
       width: 40px;
       height: 40px;
-      background-color: #6c757d; /* Bootstrap secondary color */
-      color: white;
+      background-color: var(--accent-color);
+      color: var(--text-color);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: bold;
       cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .profile-icon:hover {
+      transform: scale(1.1);
+    }
+    /* Nature and travel themed color scheme */
+    body {
+        background-color: #f0f8ff; /* AliceBlue */
+        color: #2f4f4f; /* DarkSlateGray */
+    }
+    .navbar, .card, .btn {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    .navbar {
+        background-color: var(--primary-color) !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    .navbar-brand, .nav-link, .profile-icon {
+        color: #fff !important;
+    }
+    .nav-link {
+      position: relative;
+      transition: all 0.3s ease;
+    }
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 2px;
+      bottom: 0;
+      left: 0;
+      background-color: var(--accent-color);
+      transition: width 0.3s ease;
+    }
+    .nav-link:hover::after {
+      width: 100%;
+    }
+    .btn-primary {
+        background-color: #4682b4; /* SteelBlue */
+        border-color: #4682b4;
+    }
+    .btn-success {
+        background-color: #3cb371; /* MediumSeaGreen */
+        border-color: #3cb371;
+    }
+    .btn-danger {
+        background-color: #dc143c; /* Crimson */
+        border-color: #dc143c;
+    }
+    .card {
+        border: none;
+        border-radius: 10px;
+    }
+    .card-header {
+        background-color: #4682b4; /* SteelBlue */
+        color: #fff;
+    }
+    .list-group-item {
+        border: none;
+        border-radius: 5px;
+        margin-bottom: 10px;
+    }
+    .alert-danger {
+        background-color: #f08080; /* LightCoral */
+        color: #fff;
+    }
+    .container {
+      animation: fadeIn 0.5s ease-out;
     }
   </style>
 </head>
