@@ -242,25 +242,51 @@ def public_events():
 @app.route("/schedule")
 @login_required
 def schedule():
-    # Sample schedule data
-    scheduleData = [
-        {
-            "id": 1,
-            "title": "Meeting with John",
-            "description": "03/05/2025, 2:00 PM, Zoom",
-        },
-        {
-            "id": 2,
-            "title": "Project Deadline",
-            "description": "03/10/2025, Submit by 5:00 PM",
-        },
-        {
-            "id": 3,
-            "title": "Lunch with Team",
-            "description": "03/06/2025, 12:30 PM, Italian Bistro",
-        },
-    ]
-    return render_template("schedule.html", schedule=scheduleData, title="Schedule")
+    # Query scheduled events for the current user
+    events = list(db.ScheduledEvents.find({"user_id": current_user.id}))
+    # Convert ObjectIds to strings if needed
+    for event in events:
+        event["id"] = str(event["_id"])
+    return render_template("schedule.html", schedule=events, title="Schedule")
+
+
+@app.route("/schedule_event", methods=["GET", "POST"])
+@login_required
+def schedule_event():
+    if request.method == "POST":
+        # Retrieve form data
+        activity = request.form["activity"]
+        description = request.form["description"]
+        location = request.form["location"]
+        time_availability = request.form["time_availability"]
+        scheduled_date = request.form["scheduled_date"]
+
+        # Save scheduled event to the database (in ScheduledEvents collection)
+        event_data = {
+            "user_id": current_user.id,
+            "activity": activity,
+            "description": description,
+            "location": location,
+            "time_availability": time_availability,
+            "scheduled_date": scheduled_date,
+        }
+        db.ScheduledEvents.insert_one(event_data)
+        flash("Event scheduled successfully!")
+        return redirect(url_for("schedule"))
+    
+    # GET request: prefill form fields from query parameters
+    activity = request.args.get("activity", "")
+    description = request.args.get("description", "")
+    location = request.args.get("location", "")
+    time_availability = request.args.get("time_availability", "")
+    return render_template(
+        "schedule_event.html",
+        title="Schedule Event",
+        activity=activity,
+        description=description,
+        location=location,
+        time_availability=time_availability
+    )
 
 
 @app.route("/account")
