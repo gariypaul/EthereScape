@@ -336,9 +336,9 @@ def verify_event(event_id):
         )
     except Exception as e:
         flash("Error retrieving event: " + str(e))
-        print (e)
+        print(e)
         return redirect(url_for("schedule"))
-    
+
     print(event)
 
     if not event:
@@ -356,7 +356,15 @@ def verify_event(event_id):
     distance = calculate_distance(user_lat, user_long, event_lat, event_lng)
     print(distance)
     if distance > 0.1:
-        return jsonify({"success": False, "error": "You are not close enough to verify attendance."}), 400
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": "You are not close enough to verify attendance.",
+                }
+            ),
+            400,
+        )
     # Otherwise call smart contract to verify event
     try:
         print("Verifying event...")
@@ -372,7 +380,7 @@ def verify_event(event_id):
         {"_id": ObjectId(event_id)}, {"$set": {"verified": True}}
     )
 
-    return jsonify({"success": True}) 
+    return jsonify({"success": True})
     return redirect(url_for("schedule"))
 
 
