@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+  <!-- Left Column: Activity List (full width initially) -->
+  <div class="col-md-12" id="activityListColumn">
+    <div id="activityList" class="list-group">
+      {% for act in activities %}
+      <button type="button" class="list-group-item list-group-item-action" 
+              data-title="{{ act.title }}" 
+              data-description="{{ act.description }}">
+        {{ act.title }}
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+  
+  <!-- Right Column: Activity Details (hidden initially) -->
+  <div class="col-md-8 d-none" id="activityDetailColumn">
+    <div id="activityDetail" class="card">
+      <div class="card-body">
+        <h5 class="card-title">Activity Details</h5>
+        <p class="card-text" id="activityDescription">
+          Select an activity from the list to see details.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript to handle layout changes -->
+<script>
+  const activityList = document.getElementById('activityList');
+  const activityListColumn = document.getElementById('activityListColumn');
+  const activityDetailColumn = document.getElementById('activityDetailColumn');
+  const activityDetailTitle = document.querySelector('#activityDetail .card-title');
+  const activityDescription = document.getElementById('activityDescription');
+
+  activityList.addEventListener('click', function(e) {
+    if (e.target && e.target.matches("button.list-group-item")) {
+      // Update activity details
+      const title = e.target.getAttribute('data-title');
+      const description = e.target.getAttribute('data-description');
+      activityDetailTitle.textContent = title;
+      activityDescription.textContent = description;
+
+      // Adjust layout columns
+      activityListColumn.classList.replace('col-md-12', 'col-md-4');
+      activityDetailColumn.classList.remove('d-none');
+
+      // Highlight selected item
+      const items = activityList.querySelectorAll('button.list-group-item');
+      items.forEach(item => item.classList.remove('active'));
+      e.target.classList.add('active');
+    }
+  });
+</script>
+{% endblock %}

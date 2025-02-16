@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container my-4">
+  <h1 class="mb-4">Account Information</h1>
+  <div class="card mb-4">
+    <div class="card-header">
+      User Details
+    </div>
+    <div class="card-body">
+      <p class="card-text"><strong>Full Name:</strong> {{ current_user.first_name }} {{ current_user.last_name }}</p>
+      <p class="card-text"><strong>Email:</strong> {{ current_user.email }}</p>
+      <p class="card-text">
+        <strong>Bio:</strong>
+        {% if current_user.bio %}
+          {{ current_user.bio }}
+        {% else %}
+          No bio provided.
+        {% endif %}
+      </p>
+      <p class="card-text">
+        <strong>Interests:</strong>
+        {% if current_user.interests %}
+          {{ current_user.interests }}
+        {% else %}
+          None
+        {% endif %}
+      </p>
+    </div>
+  </div>
+
+  <h2 class="mb-3">Activity History</h2>
+  {% if activityHistory %}
+  <ul class="list-group mb-4">
+    {% for act in activityHistory %}
+      <li class="list-group-item"><strong>{{ act.title }}</strong> - {{ act.date }}</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+    <p>No activity history available.</p>
+  {% endif %}
+
+  <a href="{{ url_for('logout') }}" class="btn btn-danger">Logout</a>
+</div>
+{% endblock %}

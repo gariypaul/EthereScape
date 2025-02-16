@@ -1,0 +1,57 @@
+{% extends "public_base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <h1 class="text-center mb-4">Sign Up</h1>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="alert alert-danger">
+          {% for message in messages %}
+            <div>{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    <form method="POST">
+      <!-- First Name -->
+      <div class="mb-3">
+        <label for="first_name" class="form-label">First Name</label>
+        <input type="text" class="form-control" id="first_name" name="first_name" required>
+      </div>
+      <!-- Last Name -->
+      <div class="mb-3">
+        <label for="last_name" class="form-label">Last Name</label>
+        <input type="text" class="form-control" id="last_name" name="last_name" required>
+      </div>
+      <!-- Email -->
+      <div class="mb-3">
+        <label for="email" class="form-label">Email address</label>
+        <input type="email" class="form-control" id="email" name="email" required>
+      </div>
+      <!-- Password -->
+      <div class="mb-3">
+        <label for="password" class="form-label">Password</label>
+        <input type="password" class="form-control" id="password" name="password" required>
+      </div>
+      <!-- Interests (Multiple Select, populated dynamically) -->
+      <div class="mb-3">
+        <label for="interests" class="form-label">Interests</label>
+        <select multiple class="form-control" id="interests" name="interests">
+          {% for interest in interests %}
+            <option value="{{ interest.name }}">{{ interest.name }}</option>
+          {% endfor %}
+        </select>
+        <small class="form-text text-muted">
+          Hold down Ctrl (Windows) or Command (Mac) to select multiple options.
+        </small>
+      </div>
+      <!-- Optional Bio -->
+      <div class="mb-3">
+        <label for="bio" class="form-label">Bio</label>
+        <textarea class="form-control" id="bio" name="bio"></textarea>
+      </div>
+      <button type="submit" class="btn btn-success w-100">Sign Up</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

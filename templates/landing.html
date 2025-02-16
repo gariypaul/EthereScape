@@ -1,0 +1,11 @@
+{% extends "public_base.html" %}
+{% block content %}
+<div class="text-center">
+  <h1 class="display-4">Welcome to EtherEscape</h1>
+  <p class="lead">Your gateway to activities, people, and more.</p>
+  <div class="mt-4">
+    <a class="btn btn-primary me-2" href="{{ url_for('login') }}">Log In</a>
+    <a class="btn btn-success" href="{{ url_for('signup') }}">Sign Up</a>
+  </div>
+</div>
+{% endblock %}
