@@ -24,9 +24,15 @@
     <div id="activityDetail" class="card">
       <div class="card-body">
         <h5 class="card-title" id="detailTitle">Activity Details</h5>
+        <p class="card-text" id="detailLocation"><strong>Location:</strong></p>
         <p class="card-text" id="detailDescription">
           Select an activity from the list to see details.
         </p>
+        <p class="card-text" id="detailTime"><strong>Time Availability:</strong></p>
+        <!-- Schedule Button (hidden until an activity is selected) -->
+        <a href="#" id="scheduleButton" class="btn btn-primary mt-3 d-none">
+          Schedule this event
+        </a>
       </div>
     </div>
   </div>
@@ -43,33 +49,47 @@
         document.getElementById('activitiesContainer').classList.remove('d-none');
         
         const activityList = document.getElementById('activityList');
+        const scheduleButton = document.getElementById('scheduleButton');
         
-        // For each activity, create a button with the same list formatting
+        // For each activity, create a button with the desired formatting
         data.forEach(act => {
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.className = 'list-group-item list-group-item-action';
-          // Display activity title (you could also add location if desired)
+          // Display activity title in bold and location as small text.
           btn.innerHTML = `<strong>${act.activity}</strong><br><small>${act.location}</small>`;
           // Store full details in data attributes
-          btn.dataset.title = act.activity;
-          btn.dataset.description = act.description;
+          btn.dataset.activity = act.activity;
           btn.dataset.location = act.location;
-          btn.dataset.time = act.time_availability;
+          btn.dataset.description = act.description;
+          btn.dataset.time = act["time availability"];
           
-          // When clicked, update the detail panel
+          // When clicked, update the detail panel and schedule button
           btn.addEventListener('click', function() {
-            document.getElementById('detailTitle').textContent = this.dataset.title;
-            document.getElementById('detailDescription').innerHTML = `<strong>Description:</strong> ${this.dataset.description}<br><strong>Time Availability:</strong> ${this.dataset.time}`;
+            // Update detail panel content
+            document.getElementById('detailTitle').textContent = this.dataset.activity;
+            document.getElementById('detailLocation').innerHTML = `<strong>Location:</strong> ${this.dataset.location}`;
+            document.getElementById('detailDescription').innerHTML = `<strong>Description:</strong> ${this.dataset.description}`;
+            document.getElementById('detailTime').innerHTML = `<strong>Time Availability:</strong> ${this.dataset.time}`;
             
-            // Adjust layout: shrink the activity list column if necessary
+            // Update the Schedule button's href with URL-encoded query parameters.
+            const query = new URLSearchParams({
+              activity: this.dataset.activity,
+              description: this.dataset.description,
+              location: this.dataset.location,
+              time_availability: this.dataset.time
+            });
+            scheduleButton.href = '/schedule_event?' + query.toString();
+            scheduleButton.classList.remove('d-none');
+            
+            // Adjust layout: if necessary, shrink the activity list column.
             const activityListColumn = document.getElementById('activityListColumn');
             if (activityListColumn.classList.contains('col-md-12')) {
               activityListColumn.classList.replace('col-md-12', 'col-md-4');
             }
             document.getElementById('activityDetailColumn').classList.remove('d-none');
             
-            // Highlight the selected button
+            // Highlight selected item
             const items = activityList.querySelectorAll('button.list-group-item');
             items.forEach(item => item.classList.remove('active'));
             this.classList.add('active');
